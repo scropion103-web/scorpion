@@ -1,0 +1,166 @@
+// Perfume Café — database schema (Prisma 7 + PostgreSQL)
+// The connection string lives in prisma.config.ts
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum Category {
+  MEN
+  WOMEN
+  UNISEX
+  NICHE
+}
+
+enum PaymentMethod {
+  COD
+  INSTAPAY
+  VODAFONE_CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  AWAITING_VERIFICATION
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  nameAr        String
+  nameEn        String
+  notesAr       String[]
+  notesEn       String[]
+  descriptionAr String?
+  descriptionEn String?
+  category      Category
+  color         String      @default("#1B1A17")
+  shape         Int         @default(0)
+  price50       Int
+  price100      Int
+  salePercent   Int         @default(0)
+  stock50       Int         @default(0)
+  stock100      Int         @default(0)
+  imageUrl      String?
+  isActive      Boolean     @default(true)
+  isFeatured    Boolean     @default(false)
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  orderItems    OrderItem[]
+
+  @@index([category, isActive])
+}
+
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  percent     Int
+  minSubtotal Int       @default(0)
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Order {
+  id               String        @id @default(cuid())
+  ref              String        @unique
+  customerName     String
+  phone            String
+  address          String
+  locale           String        @default("ar")
+  paymentMethod    PaymentMethod @default(COD)
+  paymentStatus    PaymentStatus @default(PENDING)
+  paymentProofUrl  String?
+  paymentReference String?
+  status           OrderStatus   @default(PENDING)
+  subtotal         Int
+  discount         Int           @default(0)
+  shipping         Int           @default(0)
+  total            Int
+  couponCode       String?
+  suggestion       String?
+  adminNotes       String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  items            OrderItem[]
+  messages         MessageLog[]
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  nameAr    String
+  nameEn    String
+  size      Int
+  unitPrice Int
+  quantity  Int
+  lineTotal Int
+}
+
+/// Log of WhatsApp messages sent through the Meta Graph API
+model MessageLog {
+  id        String   @id @default(cuid())
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  to        String
+  kind      String
+  success   Boolean
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+/// Single-row store settings (id = 1)
+model Setting {
+  id                 Int     @id @default(1)
+  shippingFee        Int     @default(60)
+  freeShippingFrom   Int     @default(1500)
+  whatsappNumber     String  @default("201000000000")
+  phoneDisplay       String  @default("+20 100 000 0000")
+  instapayHandle     String  @default("perfumecafe@instapay")
+  vodafoneCashNumber String  @default("01000000000")
+  featuredCoupon     String? @default("WELCOME15")
+  instagramUrl       String?
+  facebookUrl        String?
+  tiktokUrl          String?
+}

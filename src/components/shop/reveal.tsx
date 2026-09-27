@@ -1,0 +1,27 @@
+"use client";
+
+import { motion } from "framer-motion";
+import type { ReactNode } from "react";
+
+/** Fade-and-rise on scroll. <MotionConfig reducedMotion="user"> in the layout turns the movement off for prefers-reduced-motion. */
+export function Reveal({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 26 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.12 }}
+      transition={{ duration: 0.7, ease: "easeOut", delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
